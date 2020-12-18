@@ -388,7 +388,7 @@ class RunFiles(Operator):
 
 
 class SaveProjectFiles(Operator):
-    """Save all files in the selected project"""
+    """Save all files from the selected project, which also are open in the Text Editor"""
     bl_idname = "ops.sh_save_project_files"
     bl_label = "Save All"
     bl_options = {"UNDO", "INTERNAL"}
