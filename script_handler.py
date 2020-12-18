@@ -51,11 +51,11 @@ def on_file_index_change(_, context):
 
 
 # ---------------------------------------------------------------------------------------------
-# PANEL
+# PANELS
 # ---------------------------------------------------------------------------------------------
 class ScriptHandlerPanel(Panel):
     bl_idname = "OBJECT_PT_script_handler"
-    bl_label = "ScriptHandler"
+    bl_label = "Script Handler Projects"
     bl_space_type = "TEXT_EDITOR"
     bl_region_type = "UI"
 
@@ -63,8 +63,14 @@ class ScriptHandlerPanel(Panel):
         layout = self.layout
         scn = context.scene
         props = scn.script_handler
+        layout = layout.column(align=True)
 
-        layout.label(text="Projects")
+        row = layout.row(align=True)
+        row.prop(props, "new_project_name", text="Name")
+        row.operator("ops.sh_add_project", icon="ADD", text="")
+        row.operator("ops.sh_rename_project", icon="COPY_ID", text="")
+
+        layout.separator()
 
         row = layout.row()
         row.template_list("OBJECT_UL_script_handler_projects", "", props, "projects", props, "project_index", rows=5)
@@ -74,13 +80,21 @@ class ScriptHandlerPanel(Panel):
         col.operator("ops.sh_move_project_down", text="", icon="TRIA_DOWN")
         col.operator("ops.sh_remove_project", text="", icon="X")
 
-        layout.operator("ops.sh_add_project", icon="ADD")
-        layout.operator("ops.sh_rename_project", icon="CONSOLE")
-        layout.prop(props, "new_project_name")
+
+class ScriptHandlerSubPanel(Panel):
+    bl_idname = "OBJECT_PT_script_handler_sub"
+    bl_label = "Project Files"
+    bl_space_type = "TEXT_EDITOR"
+    bl_region_type = "UI"
+    bl_parent_id = "OBJECT_PT_script_handler"
+
+    def draw(self, context):
+        layout = self.layout
+        scn = context.scene
+        props = scn.script_handler
+        layout = layout.column(align=True)
 
         if 0 <= props.project_index < len(props.projects):
-            layout.separator()
-            layout.label(text="Files")
 
             project = props.projects[props.project_index]
 
@@ -89,23 +103,19 @@ class ScriptHandlerPanel(Panel):
                               rows=7)
 
             col = row.column()
+            col.operator("ops.sh_add_files", text="", icon="ADD")
+            col.operator("ops.sh_remove_file", text="", icon="X")
             col.operator("ops.sh_move_file_up", text="", icon="TRIA_UP")
             col.operator("ops.sh_move_file_down", text="", icon="TRIA_DOWN")
-            col.operator("ops.sh_remove_file", text="", icon="X")
-
-            layout.operator("ops.sh_add_files", icon="FILEBROWSER")
 
             layout.separator()
-            layout.operator("ops.sh_load_reload_files", icon="FILE_REFRESH")
 
-            layout.separator()
-            layout.operator("ops.sh_run_files", icon="PLAY")
-
-            layout.separator()
-            layout.operator("ops.sh_save_project_files", icon="WINDOW")
-
-            layout.separator()
-            layout.operator("ops.sh_remove_project_files", icon="REMOVE")
+            col = layout.row(align=True)
+            col.operator("ops.sh_load_reload_files", icon="FILE_REFRESH")
+            col.operator("ops.sh_remove_project_files", icon="REMOVE")
+            col = layout.row(align=True)
+            col.operator("ops.sh_save_project_files", icon="WINDOW")
+            col.operator("ops.sh_run_files", icon="PLAY")
 
 
 # ---------------------------------------------------------------------------------------------
@@ -131,6 +141,7 @@ class OBJECT_UL_script_handler_files(UIList):
 # PROJECT OPERATORS
 # ---------------------------------------------------------------------------------------------
 class AddProject(Operator):
+    """Add a new project to the list named with the text in the text box"""
     bl_idname = "ops.sh_add_project"
     bl_label = "Add Project"
     bl_options = {"UNDO", "INTERNAL"}
@@ -147,7 +158,8 @@ class AddProject(Operator):
                 props.project_index = len(props.projects) - 1
             else:
                 self.report({"INFO"}, "A project already exists with the name {}".format(props.new_project_name))
-
+        else:
+            self.report({"INFO"}, "No project name entered.")
         return {"FINISHED"}
 
 
@@ -205,6 +217,7 @@ class MoveProjectDown(Operator):  # "DOWN" = closer to len(list)
 
 
 class RenameProject(Operator):
+    """Renames selected project to the name in the text box"""
     bl_idname = "ops.sh_rename_project"
     bl_label = "Rename Project"
     bl_options = {"UNDO", "INTERNAL"}
@@ -319,8 +332,9 @@ class MoveFileDown(Operator):  # "DOWN" = closer to len(list)
 
 
 class LoadReloadFiles(Operator):
+    """(Re)Load all files in Text Editor from the selected project"""
     bl_idname = "ops.sh_load_reload_files"
-    bl_label = "(Re)Load Files"
+    bl_label = "(Re)Load All"
     bl_options = {"UNDO", "INTERNAL"}
 
     def execute(self, context):
@@ -346,8 +360,9 @@ class LoadReloadFiles(Operator):
 
 
 class RunFiles(Operator):
+    """Run enabled project files"""
     bl_idname = "ops.sh_run_files"
-    bl_label = "Run Files"
+    bl_label = "Run Enabled"
     bl_options = {"UNDO", "INTERNAL"}
 
     def execute(self, context):
@@ -373,8 +388,9 @@ class RunFiles(Operator):
 
 
 class SaveProjectFiles(Operator):
+    """Save all files in the selected project"""
     bl_idname = "ops.sh_save_project_files"
-    bl_label = "Save Project Files"
+    bl_label = "Save All"
     bl_options = {"UNDO", "INTERNAL"}
 
     def execute(self, context):
@@ -395,9 +411,10 @@ class SaveProjectFiles(Operator):
         return {"FINISHED"}
 
 
-class RemoveProjectFiles(Operator):
+class UnlinkProjectFiles(Operator):
+    """Unlink all files in the Text Editor from the selected project"""
     bl_idname = "ops.sh_remove_project_files"
-    bl_label = "Remove Project Files"
+    bl_label = "Unlink All"
     bl_options = {"UNDO", "INTERNAL"}
 
     def execute(self, context):
@@ -433,7 +450,7 @@ class ScriptHandlerProperties(PropertyGroup):
     projects: CollectionProperty(type=ProjectProperties)
     project_index: IntProperty(update=on_file_index_change)
 
-    new_project_name: StringProperty(name="Project Name")
+    new_project_name: StringProperty(name="Name")
 
 
 classes = (  # order is important to avoid errors while registering
@@ -453,9 +470,10 @@ classes = (  # order is important to avoid errors while registering
     RunFiles,
 
     SaveProjectFiles,
-    RemoveProjectFiles,
+    UnlinkProjectFiles,
 
     ScriptHandlerPanel,
+    ScriptHandlerSubPanel,
 
     OBJECT_UL_script_handler_projects,
     OBJECT_UL_script_handler_files,
